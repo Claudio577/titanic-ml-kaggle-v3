@@ -3,7 +3,9 @@ import pandas as pd
 import joblib
 from pathlib import Path
 from sklearn.ensemble import RandomForestClassifier
-
+st.set_page_config(page_title="Titanic ML", layout="centered")
+st.title("🚢 Titanic – Previsão de Sobrevivência")
+st.write("App carregou com sucesso ✅")
 BASE_DIR = Path(__file__).resolve().parent
 DATA_PATH = BASE_DIR / "data" / "raw" / "train.csv"
 MODEL_PATH = BASE_DIR / "outputs" / "model.pkl"
