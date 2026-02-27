@@ -2,46 +2,39 @@ import streamlit as st
 import pandas as pd
 import joblib
 from pathlib import Path
+from sklearn.ensemble import RandomForestClassifier
 
-# Paths
 BASE_DIR = Path(__file__).resolve().parent
+DATA_PATH = BASE_DIR / "data" / "raw" / "train.csv"
 MODEL_PATH = BASE_DIR / "outputs" / "model.pkl"
 
-# Carregar modelo
-model = joblib.load(MODEL_PATH)
+@st.cache_resource
+def load_or_train_model():
+    if MODEL_PATH.exists():
+        return joblib.load(MODEL_PATH)
 
-st.set_page_config(page_title="Titanic Survival Predictor", layout="centered")
+    # Treinar modelo se não existir
+    df = pd.read_csv(DATA_PATH)
 
-st.title("🚢 Titanic – Previsão de Sobrevivência")
-st.markdown("Simulação usando Machine Learning (Random Forest)")
+    features = ["Pclass", "Sex", "Age", "SibSp", "Parch", "Fare"]
+    df = df[features + ["Survived"]]
 
-st.sidebar.header("Dados do Passageiro")
+    df["Age"].fillna(df["Age"].median(), inplace=True)
+    df["Sex"] = df["Sex"].map({"male": 0, "female": 1})
 
-pclass = st.sidebar.selectbox("Classe", [1, 2, 3])
-sex = st.sidebar.selectbox("Sexo", ["male", "female"])
-age = st.sidebar.slider("Idade", 0, 80, 30)
-sibsp = st.sidebar.slider("Irmãos/Cônjuges a bordo", 0, 5, 0)
-parch = st.sidebar.slider("Pais/Filhos a bordo", 0, 5, 0)
-fare = st.sidebar.slider("Tarifa paga", 0.0, 500.0, 50.0)
+    X = df[features]
+    y = df["Survived"]
 
-sex = 0 if sex == "male" else 1
+    model = RandomForestClassifier(
+        n_estimators=200,
+        random_state=42
+    )
+    model.fit(X, y)
 
-input_df = pd.DataFrame([{
-    "Pclass": pclass,
-    "Sex": sex,
-    "Age": age,
-    "SibSp": sibsp,
-    "Parch": parch,
-    "Fare": fare
-}])
+    MODEL_PATH.parent.mkdir(exist_ok=True)
+    joblib.dump(model, MODEL_PATH)
 
-st.subheader("📋 Dados do passageiro")
-st.dataframe(input_df)
+    return model
 
-if st.button("🔮 Prever"):
-    prediction = model.predict(input_df)[0]
 
-    if prediction == 1:
-        st.success("🟢 Sobreviveu")
-    else:
-        st.error("🔴 Não sobreviveu")
+model = load_or_train_model()
